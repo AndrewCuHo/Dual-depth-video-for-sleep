@@ -38,7 +38,7 @@ def capture(mode='video'):
             #video = mmcv.VideoReader('./Savevideo/result_r.avi')
             frame = Image.fromarray(cv2.cvtColor(frame_r, cv2.COLOR_BGR2RGB))
             # Detect faces
-            boxes = mtcnn.detect(frame)
+            boxes, _ = mtcnn.detect(frame)
 
             # Draw faces
             frame_draw = frame.copy()
