@@ -2,10 +2,9 @@ import heartpy
 import imageio
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from heartpy.datautils import rolling_mean
 from sklearn import preprocessing
-from utils.filters import bandpass_butter
+from filters import bandpass_butter
 import cv2
 from numpy.linalg import inv, norm, lstsq
 from numpy.linalg import matrix_rank as rank
@@ -33,19 +32,26 @@ def img_to_signal(img, crop=False):
     return out
 
 
-def process_data(x, fps=30):
+def process_data(x, fps=20):
     #print(x.shape)
     #x = x[5:-5]
 
     x = preprocessing.scale(x)
     x = bandpass_butter(x, cut_low=1, cut_high=2, rate=fps, order=2)
 
-    rol_mean = rolling_mean(x, windowsize=5, sample_rate=fps)
+    rol_mean = rolling_mean(x, windowsize=0.75, sample_rate=fps)
     wd = heartpy.peakdetection.detect_peaks(x, rol_mean, ma_perc=20, sample_rate=fps)
     peaks = wd['peaklist']
     rri = np.diff(peaks)
     rri = rri * 1 / fps * 1000
     hr = 6e4 / rri
+
+    hr = heartpy.datautils.outliers_iqr_method(hr)
+    hr = np.asarray(hr[0])
+    hr = heartpy.filtering.smooth_signal(hr, sample_rate=fps, window_length=4, polyorder=2)
+
+    hr[hr > 100] = 100
+    hr[hr < 40] = 40
 
     # df = pd.DataFrame()
     # df['rri'] = [rri]
@@ -66,6 +72,33 @@ def process_data(x, fps=30):
     plt.show()'''
     return hr
 
+def process_data_ref(x, fps=30):
+    #print(x.shape)
+    x = x[5:-5]
+
+    x = preprocessing.scale(x)
+    x = bandpass_butter(x, cut_low=1, cut_high=2, rate=fps, order=2)
+
+    rol_mean = rolling_mean(x, windowsize=3, sample_rate=fps)
+    wd, m = heartpy.process_segmentwise(rol_mean, sample_rate = fps, segment_width=3, segment_overlap=0.5,
+                                        replace_outliers = True)
+    bpm = [round(x, 1) for x in m['bpm']]
+    print(bpm)
+
+    '''from scipy.interpolate import make_interp_spline
+    x_t = np.asarray(range(0, len(hr)))
+    x_smooth = np.linspace(x_t.min(), x_t.max(), 300)
+    hr = make_interp_spline(x_t, hr)(x_smooth)'''
+
+    # df = pd.DataFrame()
+    # df['rri'] = [rri]
+    # res = apply_model_df(df)
+    # print(f"res: {res}")
+
+    # m, wd = heartpy.analysis.calc_breathing(wd['RR_list'], x, sample_rate=fps)
+    # print(f"breath rate: {round(m['breathingrate'], 3)}")
+
+    return bpm
 
 def show_frame(vid):
     for idx, frame in enumerate(vid.iter_data()):
@@ -90,7 +123,7 @@ def process_frame(data=None, fps=30):
     rgb = [img_to_signal(img) for img in fp]
     rgb = np.vstack(rgb)
     r, g, b = rgb[:, 0], rgb[:, 1], rgb[:, 2]
-    hr = process_data(r, fps)
+    hr = process_data_ref(r, fps)
     return hr
 
 
@@ -172,7 +205,7 @@ def eliminate_light(fr):
 
 
 if __name__ == "__main__":
-    fp = r'G:\PPG\Savevideo\result_right.avi'
+    fp = r'.\Savevideo\result_right.avi'
     vid = imageio.get_reader(fp, 'ffmpeg')
     metadata = vid.get_meta_data()
     # print(f'metadata: {metadata}')
@@ -182,4 +215,4 @@ if __name__ == "__main__":
     rgb = [img_to_signal(img) for img in vid.iter_data()]
     rgb = np.vstack(rgb)
     r, g, b = rgb[:, 0], rgb[:, 1], rgb[:, 2]
-    process_data(r, fps)
+    process_data_ref(r, fps)
