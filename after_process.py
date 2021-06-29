@@ -5,6 +5,7 @@ import mmcv, cv2
 from PIL import Image, ImageDraw
 from tqdm import tqdm
 import math
+from preprocess import process_frame, align_faces, aligned_face, eliminate_light
 
 from joblib import Parallel, delayed
 
@@ -21,7 +22,6 @@ frames_tracked = []
 frames_croped = []
 
 for i, frame in tqdm(enumerate(frames)):
-    #print('\rTracking frame: {}'.format(i + 1), end='')
 
     try:
         # Detect faces
@@ -34,6 +34,7 @@ for i, frame in tqdm(enumerate(frames)):
             draw.rectangle(box.tolist(), outline=(255, 0, 0), width=6)
         # Add to frame list
         my_frame = cv2.cvtColor(np.array(frame_draw.resize((640, 480), Image.BILINEAR)), cv2.COLOR_RGB2BGR)
+        my_frame = eliminate_light(my_frame)
         my_frame_crop = my_frame[math.ceil(boxes[0][1]):math.ceil(boxes[0][3]), math.ceil(boxes[0][0]):math.ceil(boxes[0][2])]
         my_frame_crop = cv2.resize(my_frame_crop, (300, 300), interpolation=cv2.INTER_AREA)
         frames_tracked.append(my_frame)
@@ -59,4 +60,5 @@ process_framse(frames_tracked, video_tracked)
 process_framse(frames_croped, video_tracked_crop)
 video_tracked.release()
 video_tracked_crop.release()
+
 
