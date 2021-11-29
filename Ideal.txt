@@ -1,6 +1,0 @@
-1.	PPG （指尖摄像头）-> Transformer(Audio) + Feature Selection(Manual) -> 血糖(BG)和血压(BP)，心率(HR)回归
-2.	生成(Image2styleGAN)插帧的图像（当作帧缺失来降噪）+置信度低的帧丢弃（ICML）或(VideoMoCo)。Loss监督用（特征图蒸馏）
-3.	因果处理+证明（插入到U型另一边）
-4.	人工特征用频率插入到Tokens，或者参看特征融合(Transformer)
-5.	BaseLine用Parnet（transformer改，卷积weight改Pruning Self-attentions into Convolutional Layers， Self-attention-ConvLSTM插入），做多阶段不同token长度(Not all 16*16)
-6.	线性分析得到心率，血压，血糖的关系
